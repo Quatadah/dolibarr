@@ -4986,7 +4986,7 @@ abstract class CommonObject
 				}
 
 				$text .= ' - '.(!empty($line->label) ? $line->label : $label);
-				$description .= (!empty($conf->global->PRODUIT_DESC_IN_FORM) ? '' : dol_htmlentitiesbr($line->description)); // Description is what to show on popup. We shown nothing if already into desc.
+				$description .= (!empty($conf->global->PRODUIT_DESC_IN_FORM) ? '' : (!empty($line->description) ? dol_htmlentitiesbr($line->description) : '')); // Description is what to show on popup. We shown nothing if already into desc.
 			}
 
 			$line->pu_ttc = price2num((!empty($line->subprice) ? $line->subprice : 0) * (1 + ((!empty($line->tva_tx) ? $line->tva_tx : 0) / 100)), 'MU');
@@ -7498,33 +7498,35 @@ abstract class CommonObject
 			$resql = $this->db->query($sql);
 			if ($resql) {
 				$value = ''; // value was used, so now we reste it to use it to build final output
+				$numrows = $this->db->num_rows($resql);
+				if ($numrows) {
+					$obj = $this->db->fetch_object($resql);
 
-				$obj = $this->db->fetch_object($resql);
+					// Several field into label (eq table:code|libelle:rowid)
+					$fields_label = explode('|', $InfoFieldList[1]);
 
-				// Several field into label (eq table:code|libelle:rowid)
-				$fields_label = explode('|', $InfoFieldList[1]);
-
-				if (is_array($fields_label) && count($fields_label) > 1) {
-					foreach ($fields_label as $field_toshow) {
-						$translabel = '';
-						if (!empty($obj->$field_toshow)) {
-							$translabel = $langs->trans($obj->$field_toshow);
+					if (is_array($fields_label) && count($fields_label) > 1) {
+						foreach ($fields_label as $field_toshow) {
+							$translabel = '';
+							if (!empty($obj->$field_toshow)) {
+								$translabel = $langs->trans($obj->$field_toshow);
+							}
+							if ($translabel != $field_toshow) {
+								$value .= dol_trunc($translabel, 18).' ';
+							} else {
+								$value .= $obj->$field_toshow.' ';
+							}
 						}
-						if ($translabel != $field_toshow) {
-							$value .= dol_trunc($translabel, 18).' ';
-						} else {
-							$value .= $obj->$field_toshow.' ';
-						}
-					}
-				} else {
-					$translabel = '';
-					if (!empty($obj->{$InfoFieldList[1]})) {
-						$translabel = $langs->trans($obj->{$InfoFieldList[1]});
-					}
-					if ($translabel != $obj->{$InfoFieldList[1]}) {
-						$value = dol_trunc($translabel, 18);
 					} else {
-						$value = $obj->{$InfoFieldList[1]};
+						$translabel = '';
+						if (!empty($obj->{$InfoFieldList[1]})) {
+							$translabel = $langs->trans($obj->{$InfoFieldList[1]});
+						}
+						if ($translabel != $obj->{$InfoFieldList[1]}) {
+							$value = dol_trunc($translabel, 18);
+						} else {
+							$value = $obj->{$InfoFieldList[1]};
+						}
 					}
 				}
 			} else {
@@ -7631,16 +7633,24 @@ abstract class CommonObject
 						}
 						if ($result > 0) {
 							if ($object->element === 'product') {
-								$getnomurlparam3 = (!isset($InfoFieldList[5]) ? 0 : $InfoFieldList[5]);
-								$getnomurlparam4 = (!isset($InfoFieldList[6]) ? -1 : $InfoFieldList[6]);
-								$getnomurlparam5 = (!isset($InfoFieldList[7]) ? 0 : $InfoFieldList[7]);
-								$getnomurlparam6 = (!isset($InfoFieldList[8]) ? '' : $InfoFieldList[8]);
-								$getnomurlparam7 = (!isset($InfoFieldList[9]) ? 0 : $InfoFieldList[9]);
+								$get_name_url_param_arr = array($getnomurlparam, $getnomurlparam2, 0, -1, 0, '', 0);
+								if (isset($val['get_name_url_params'])) {
+									$get_name_url_params = explode(':', $val['get_name_url_params']);
+									if (!empty($get_name_url_params)) {
+										$param_num_max = count($get_name_url_param_arr) - 1;
+										foreach ($get_name_url_params as $param_num => $param_value) {
+											if ($param_num > $param_num_max) {
+												break;
+											}
+											$get_name_url_param_arr[$param_num] = $param_value;
+										}
+									}
+								}
 
 								/**
 								 * @var Product $object
 								 */
-								$value = $object->getNomUrl($getnomurlparam, $getnomurlparam2, $getnomurlparam3, $getnomurlparam4, $getnomurlparam5, $getnomurlparam6, $getnomurlparam7);
+								$value = $object->getNomUrl($get_name_url_param_arr[0], $get_name_url_param_arr[1], $get_name_url_param_arr[2], $get_name_url_param_arr[3], $get_name_url_param_arr[4], $get_name_url_param_arr[5], $get_name_url_param_arr[6]);
 							} else {
 								$value = $object->getNomUrl($getnomurlparam, $getnomurlparam2);
 							}

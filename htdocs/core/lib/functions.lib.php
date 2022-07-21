@@ -3887,15 +3887,18 @@ function img_picto($titlealt, $picto, $moreatt = '', $pictoisfullpath = false, $
 
 		if (strpos($pictowithouttext, 'fontawesome_') !== false || preg_match('/^fa-/', $pictowithouttext)) {
 			// This is a font awesome image 'fonwtawesome_xxx' or 'fa-xxx'
+			$pictowithouttext = str_replace('fontawesome_', '', $pictowithouttext);
 			$pictowithouttext = str_replace('fa-', '', $pictowithouttext);
+
 			$pictowithouttextarray = explode('_', $pictowithouttext);
 			$marginleftonlyshort = 0;
 
 			if (!empty($pictowithouttextarray[1])) {
-				$fakey      = 'fa-'.$pictowithouttextarray[1];
-				$fa         = empty($pictowithouttextarray[2]) ? 'fa' : $pictowithouttextarray[2];
-				$facolor    = empty($pictowithouttextarray[3]) ? '' : $pictowithouttextarray[3];
-				$fasize     = empty($pictowithouttextarray[4]) ? '' : $pictowithouttextarray[4];
+				// Syntax is 'fontawesome_fakey_faprefix_facolor_fasize' or 'fa-fakey_faprefix_facolor_fasize'
+				$fakey      = 'fa-'.$pictowithouttextarray[0];
+				$fa         = empty($pictowithouttextarray[1]) ? 'fa' : $pictowithouttextarray[1];
+				$facolor    = empty($pictowithouttextarray[2]) ? '' : $pictowithouttextarray[2];
+				$fasize     = empty($pictowithouttextarray[3]) ? '' : $pictowithouttextarray[3];
 			} else {
 				$fakey      = 'fa-'.$pictowithouttext;
 				$fa         = 'fa';
@@ -8596,7 +8599,8 @@ function dol_eval($s, $returnvalue = 0, $hideerrors = 1, $onlysimplestring = '1'
 	if ($onlysimplestring == '1') {
 		// We must accept: '1 && getDolGlobalInt("doesnotexist1") && $conf->global->MAIN_FEATURES_LEVEL'
 		// We must accept: '$conf->barcode->enabled && preg_match(\'/^(AAA|BBB)/\',$leftmenu)'
-		if (preg_match('/[^a-z0-9\s'.preg_quote('^$_+-.*>&|=!?():"\',/', '/').']/i', $s)) {
+		// We must accept: '$user->rights->cabinetmed->read && $object->canvas=="patient@cabinetmed"'
+		if (preg_match('/[^a-z0-9\s'.preg_quote('^$_+-.*>&|=!?():"\',/@', '/').']/i', $s)) {
 			if ($returnvalue) {
 				return 'Bad string syntax to evaluate (found chars that are not chars for simplestring): '.$s;
 			} else {
@@ -9017,6 +9021,7 @@ function complete_head_from_modules($conf, $langs, $object, &$head, &$h, $type, 
 					if ($values[0] != $type) {
 						continue;
 					}
+					//var_dump(verifCond($values[4]));
 
 					if (verifCond($values[4])) {
 						if ($values[3]) {
